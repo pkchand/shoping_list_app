@@ -1,9 +1,56 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pyodbc
-from datetime import date
+from datetime import date, datetime
 
 app = Flask(__name__)
+
+shopping_list = []
+
+# Home route
+@app.route('/')
+def home():
+    return "Welcome to the Enhanced Shopping List App!"
+
+# View all items
+@app.route('/items', methods=['GET'])
+def get_items():
+    return jsonify(shopping_list)
+
+# Add an item
+@app.route('/items', methods=['POST'])
+def add_item():
+    data = request.json
+    item = {
+        "name": data.get("name"),
+        "quantity": data.get("quantity"),
+        "unit": data.get("unit"),
+        "price": data.get("price"),
+        "bought": False,
+        "bought_on": None
+    }
+    shopping_list.append(item)
+    return jsonify({"message": "Item added", "item": item}), 201
+
+# Mark item as bought
+@app.route('/items/<string:name>/bought', methods=['PUT'])
+def mark_as_bought(name):
+    for item in shopping_list:
+        if item["name"].lower() == name.lower():
+            item["bought"] = True
+            item["bought_on"] = datetime.now().isoformat()
+            return jsonify({"message": f"{name} marked as bought.", "item": item})
+    return jsonify({"error": "Item not found"}), 404
+
+# Delete item
+@app.route('/items/<string:name>', methods=['DELETE'])
+def delete_item(name):
+    global shopping_list
+    shopping_list = [item for item in shopping_list if item["name"].lower() != name.lower()]
+    return jsonify({"message": f"{name} removed from shopping list."})
+
+if __name__ == '__main__':
+    app.run(debug=True)
 CORS(app)
 
 # Replace with your actual connection string
